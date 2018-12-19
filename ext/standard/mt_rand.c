@@ -95,7 +95,7 @@
 
 /* {{{ php_mt_initialize
  */
-static inline void php_mt_initialize(uint32_t seed, uint32_t *state)
+static inline void php_mt_initialize(zend_ulong seed, uint32_t *state)
 {
 	/* Initialize generator state with seed
 	   See Knuth TAOCP Vol 2, 3rd Ed, p.106 for multiplier.
@@ -107,6 +107,12 @@ static inline void php_mt_initialize(uint32_t seed, uint32_t *state)
 	register int i = 1;
 
 	*s++ = seed & 0xffffffffU;
+#ifdef ZEND_ENABLE_ZVAL_LONG64
+	/* add extra entropy from higher bits of seed */
+	i = 2;
+	*s++ = ( 1812433253U * ( *r ^ (*r >> 30) ) + 1 + (seed >> 32) ) & 0xffffffffU;
+	r++;
+#endif
 	for( ; i < N; ++i ) {
 		*s++ = ( 1812433253U * ( *r ^ (*r >> 30) ) + i ) & 0xffffffffU;
 		r++;
@@ -146,7 +152,7 @@ static inline void php_mt_reload(void)
 
 /* {{{ php_mt_srand
  */
-PHPAPI void php_mt_srand(uint32_t seed)
+PHPAPI void php_mt_srand(zend_ulong seed)
 {
 	/* Seed the generator with a simple uint32 */
 	php_mt_initialize(seed, BG(state));
